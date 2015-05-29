@@ -96,12 +96,37 @@ action :configure do
         mode '0644'
       end
     else
-      execute "/etc/init.d/#{instance}" do
-        command <<-EOH
-          cp /etc/init.d/#{base_instance} /etc/init.d/#{instance}
-          perl -i -pe 's/#{base_instance}/#{instance}/g' /etc/init.d/#{instance}
-        EOH
+      # aba-start: added by Abakus
+      case node['platform_family']
+      when 'rhel', 'fedora'
+        template "/etc/init.d/#{instance}" do
+          source 'tomcat7.service.init.erb'
+          owner 'root'
+          group 'root'
+          mode '0755'
+          variables ({
+            :instance => instance,
+            :base_instance => base_instance
+          })
+        end
+        directory "/etc/#{instance}" do
+          owner 'root'
+          group new_resource.group
+          mode '0755'
+          action :create
+        end
+        template "/etc/#{instance}/#{instance}.conf" do
+          source 'tomcat7.config.erb'
+          owner new_resource.user
+          group new_resource.group
+          mode '0664'
+          variables ({
+            :instance => instance,
+            :user => new_resource.user
+          })
+        end
       end
+      # aba-end: added by Abakus
     end
   end
 
@@ -229,7 +254,7 @@ action :configure do
          -password pass:#{node['tomcat']['keystore_password']} \
          -out #{new_resource.keystore_file}
       EOH
-      notifies :restart, "service[tomcat]"
+      notifies :restart, "service[#{instance}]"
     end
 
     cookbook_file "#{new_resource.config_dir}/#{new_resource.ssl_cert_file}" do
