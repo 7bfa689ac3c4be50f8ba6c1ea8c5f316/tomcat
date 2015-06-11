@@ -1,0 +1,11 @@
+#
+# managed by chef
+#
+<%= @logdir %>/catalina.out {
+	copytruncate
+	daily
+	rotate 14
+	compress
+	missingok
+	create 0644 <%= @user %> <%= @group %>
+}
