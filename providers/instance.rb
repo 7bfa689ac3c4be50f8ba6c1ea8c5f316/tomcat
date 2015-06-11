@@ -54,6 +54,18 @@ action :configure do
       end
     end
 
+    template "/etc/logrotate.d/#{instance}" do
+        source "tomcat-logrotate.erb"
+	mode 0644
+	owner "root"
+	group "root"
+	variables({
+	    :logdir => new_resource.instance_variable_get("@log_dir"),
+	    :user => new_resource.user,
+	    :group => new_resource.group,
+	})
+    end
+
     # Don't make a separate home, just link to base
     if new_resource.home != new_resource.base
       link "#{new_resource.home}" do
