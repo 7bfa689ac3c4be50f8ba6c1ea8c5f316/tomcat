@@ -24,13 +24,20 @@
      Documentation at /docs/config/server.html
  -->
 <Server port="<%= @shutdown_port %>" shutdown="SHUTDOWN">
-
+  <%- if node['tomcat']['base_version'].to_i >= 8 -%>
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <%- end -%>
   <!--APR library loader. Documentation at /docs/apr.html -->
   <!--
   <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
   -->
+  <%- if node['tomcat']['base_version'].to_i <= 7 -%>
   <!--Initialize Jasper prior to webapps are loaded. Documentation at /docs/jasper-howto.html -->
   <Listener className="org.apache.catalina.core.JasperListener" />
+  <%- end -%>
   <!-- Prevent memory leaks due to use of particular java/javax APIs-->
   <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
   <% if node['tomcat']['base_version'].to_i < 7 -%>
@@ -38,6 +45,9 @@
   <Listener className="org.apache.catalina.mbeans.ServerLifecycleListener" />
   <% end -%>
   <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <%- if node['tomcat']['base_version'].to_i >= 8 -%>
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+  <%- end -%>
 
   <!-- Global JNDI resources
        Documentation at /docs/jndi-resources-howto.html
@@ -147,12 +157,25 @@
       <Valve className="org.apache.catalina.valves.RequestDumperValve"/>
       -->
 
+<%- if node['tomcat']['base_version'].to_i <= 7 -%>
       <!-- This Realm uses the UserDatabase configured in the global JNDI
            resources under the key "UserDatabase".  Any edits
            that are performed against this UserDatabase are immediately
            available for use by the Realm.  -->
       <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
              resourceName="UserDatabase"/>
+<%- else -%>
+      <!-- Use the LockOutRealm to prevent attempts to guess user passwords
+           via a brute-force attack -->
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <!-- This Realm uses the UserDatabase configured in the global JNDI
+             resources under the key "UserDatabase".  Any edits
+             that are performed against this UserDatabase are immediately
+             available for use by the Realm.  -->
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+               resourceName="UserDatabase"/>
+      </Realm>
+<%- end -%>
 
       <!-- Define the default virtual host
            Note: XML Schema validation will not work with Xerces 2.2.
@@ -171,7 +194,11 @@
         -->
 
         <!-- Access log processes all example.
-             Documentation at: /docs/config/valve.html -->
+             Documentation at: /docs/config/valve.html
+<%- if node['tomcat']['base_version'].to_i >= 8 -%>
+             Note: The pattern used is equivalent to using pattern="common"
+<%- end -%>
+	-->
         <!--
         <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
                prefix="localhost_access_log." suffix=".txt" pattern="common" resolveHosts="false"/>
